@@ -1,0 +1,126 @@
+# Переделаный Vagrantfile с нескольких источников. Сам пока не осилил свое собрать с нуля
+# Собирает несколько машин в разном виде. Можно включать нужные конфы
+# Версия 1.2
+
+# Префикс для LAN сети
+NETWORK="192.168.100."
+# Домен который будем использовать для машин. Пишем с точкой впереди
+DOMAIN=".beholder.test"
+
+servers=[
+  {
+    :active => 1,
+    :box_name => "centos/7",
+    :short => "raid",
+    :hostname => "raid" + DOMAIN,
+    :ip => NETWORK + "111",
+    :ram => 1024,
+    :cpu => 1,
+    :disks => {
+        :sata1 => {
+	    :hdd_name => "./sata1.vdi",
+	    :hdd_size => 250,
+	    :port => 1
+	},
+        :sata2 => {
+	    :hdd_name => "./sata2.vdi",
+	    :hdd_size => 250,
+	    :port => 2
+	},
+        :sata3 => {
+	    :hdd_name => "./sata3.vdi",
+	    :hdd_size => 250,
+	    :port => 3
+	},
+        :sata4 => {
+	    :hdd_name => "./sata4.vdi",
+	    :hdd_size => 250,
+	    :port => 4
+	},
+        :sata5 => {
+	    :hdd_name => "./sata5.vdi",
+	    :hdd_size => 250,
+	    :port => 5
+	},
+        :sata6 => {
+	    :hdd_name => "./sata6.vdi",
+	    :hdd_size => 250,
+	    :port => 6
+	}
+    }
+  },
+  {
+    :active => 0,
+    :box_name => "centos/7",
+    :short => "lvm",
+    :hostname => "lvm" + DOMAIN,
+    :ip => NETWORK + "112",
+    :ram => 1024,
+    :cpu => 1
+    :disks => {
+        :sata1 => {
+	    :hdd_name => "./sata1.vdi",
+	    :hdd_size => 10000,
+	    :port => 1
+	},
+        :sata2 => {
+	    :hdd_name => "./sata2.vdi",
+	    :hdd_size => 2000,
+	    :port => 2
+	},
+        :sata3 => {
+	    :hdd_name => "./sata3.vdi",
+	    :hdd_size => 1000,
+	    :port => 3
+	},
+        :sata4 => {
+	    :hdd_name => "./sata4.vdi",
+	    :hdd_size => 1000,
+	    :port => 4
+	}
+    }
+  }
+]
+ 
+Vagrant.configure(2) do |config|
+    # Проходим по элементах массива "servers"
+    servers.each do |machine|
+	# Подключаем только нужные машинки
+	if machine[:active] == 1
+	    # Применяем конфигурации для каждой машины. Имя машины(как ее будет видно в Vbox GUI) находится в переменной "machine[:hostname]"
+	    config.vm.define machine[:hostname] do |node|
+            
+        	# Образ бокса
+        	node.vm.box = machine[:box_name]
+        	# Hostname который будет присвоен VM (самой ОС)
+        	node.vm.hostname = machine[:hostname]
+        	node.vm.network "private_network", ip: machine[:ip]
+
+		# Настройка cpu, ram, как будет видно название машинки. Потом может что еще
+    		node.vm.provider "virtualbox" do |vb|
+            	    vb.memory = machine[:ram]
+            	    vb.cpus = machine[:cpu]
+            	    # Добавление жестких дисков, если указаны
+            	    needsController = false
+            	    machine[:disks].each do |dname, dconf|
+            		unless File.exist?(dconf[:hdd_name])
+			    vb.customize ["createhd", "--filename", dconf[:hdd_name], "--variant", "Fixed", "--size", dconf[:hdd_size]]
+        		    needsController = true
+            		end
+            	    end
+            	    if needsController == true
+			vb.customize ["storagectl", :id, "--name", "SATA", "--add", "sata" ]
+			machine[:disks].each do |dname, dconf|
+			    vb.customize ["storageattach", :id,  "--storagectl", "SATA", "--port", dconf[:port], "--device", 0, "--type", "hdd", "--medium", dconf[:hdd_name]]
+			end
+    		end
+
+            	    # Можно перезаписать название VM в Vbox GUI
+		    vb.name = machine[:hostname]
+		end
+	       node.vm.provision "shell", path: "common_prov.sh"
+	       node.vm.provision "shell", path: machine[:short] + "_prov.sh"
+	    end
+	end
+    end
+end
