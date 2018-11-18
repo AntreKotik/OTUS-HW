@@ -1,0 +1,211 @@
+Script started on Sun Nov 18 15:10:22 2018
+]0;root@lvm:~[?1034h[root@lvm ~]# lsblk
+NAME                       MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sda                          8:0    0   40G  0 disk 
+|-sda1                       8:1    0    1M  0 part 
+|-sda2                       8:2    0    1G  0 part /boot
+`-sda3                       8:3    0   39G  0 part 
+  |-VolGroup00-LogVol00    253:0    0    8G  0 lvm  /
+  |-VolGroup00-LogVol01    253:1    0  1.5G  0 lvm  [SWAP]
+  `-VolGroup00-LogVol_Home 253:7    0    2G  0 lvm  /home
+sdb                          8:16   0   10G  0 disk 
+sdc                          8:32   0    2G  0 disk 
+|-vg_var-lv_var_rmeta_0    253:2    0    4M  0 lvm  
+| `-vg_var-lv_var          253:6    0  952M  0 lvm  /var
+`-vg_var-lv_var_rimage_0   253:3    0  952M  0 lvm  
+  `-vg_var-lv_var          253:6    0  952M  0 lvm  /var
+sdd                          8:48   0    1G  0 disk 
+|-vg_var-lv_var_rmeta_1    253:4    0    4M  0 lvm  
+| `-vg_var-lv_var          253:6    0  952M  0 lvm  /var
+`-vg_var-lv_var_rimage_1   253:5    0  952M  0 lvm  
+  `-vg_var-lv_var          253:6    0  952M  0 lvm  /var
+sde                          8:64   0    1G  0 disk 
+sdf                          8:80   0  256M  0 disk 
+sdg                          8:96   0  256M  0 disk 
+]0;root@lvm:~[root@lvm ~]# pvcreate /dev/sde
+  WARNING: Device for PV 5qAaP7-s5jw-0Z1q-kbqc-Dw7Y-rYt7-nRF58r not found or rejected by a filter.
+  Can't initialize physical volume "/dev/sde" of volume group "vg_opt" without -ff
+  /dev/sde: physical volume not initialized.
+]0;root@lvm:~[root@lvm ~]# exit
+
+Script done on Sun Nov 18 15:11:07 2018
+Script started on Sun Nov 18 16:09:55 2018
+]0;root@lvm:~[?1034h[root@lvm ~]# lvmdiskscan 
+  /dev/VolGroup00/LogVol00    [       8.00 GiB] 
+  /dev/VolGroup00/LogVol01    [       1.50 GiB] 
+  /dev/sda2                   [       1.00 GiB] 
+  /dev/sda3                   [     <39.00 GiB] LVM physical volume
+  /dev/vg_var/lv_var          [     952.00 MiB] 
+  /dev/VolGroup00/LogVol_Home [       2.00 GiB] 
+  /dev/sdb                    [      10.00 GiB] 
+  /dev/sdc                    [       2.00 GiB] LVM physical volume
+  /dev/sdd                    [       1.00 GiB] LVM physical volume
+  /dev/sde                    [       1.00 GiB] 
+  /dev/sdf                    [     256.00 MiB] 
+  /dev/sdg                    [     256.00 MiB] 
+  6 disks
+  3 partitions
+  2 LVM physical volume whole disks
+  1 LVM physical volume
+]0;root@lvm:~[root@lvm ~]# pvcreate /dev/sd{e,f,g}
+  Physical volume "/dev/sde" successfully created.
+  Physical volume "/dev/sdf" successfully created.
+  Physical volume "/dev/sdg" successfully created.
+]0;root@lvm:~[root@lvm ~]# vgcreate -n vg_opt /dev/sde
+vgcreate: invalid option -- 'n'
+  Error during parsing of command line.
+]0;root@lvm:~[root@lvm ~]# vgcreate -n vg_opt /dev/sden[1P[1P[1P
+  Volume group "vg_opt" successfully created
+]0;root@lvm:~[root@lvm ~]# lvcreate -n OPT   optLV -L 1000M vg_opt /dev/sde
+WARNING: btrfs signature detected on /dev/vg_opt/optLV at offset 65600. Wipe it? [y/n]: y
+  Wiping btrfs signature on /dev/vg_opt/optLV.
+  Logical volume "optLV" created.
+]0;root@lvm:~[root@lvm ~]# lvcreate -n CacheDataLV -L 250M vg_opt /dev/sdf
+  Rounding up size to full physical extent 252.00 MiB
+  Physical Volume "/dev/sdf" not found in Volume Group "vg_opt".
+]0;root@lvm:~[root@lvm ~]# vgextend vg_opt /dev/sdf /dev/ sdg[1Psdg
+  Volume group "vg_opt" successfully extended
+]0;root@lvm:~[root@lvm ~]# vgextend vg_opt /dev/sdf /dev/sdg[root@lvm ~]# lvcreate -n CacheDataLV -L 250M vg_opt /dev/sdf
+  Rounding up size to full physical extent 252.00 MiB
+  Logical volume "CacheDataLV" created.
+]0;root@lvm:~[root@lvm ~]# lvcreate -n CacheDataLV -L 250M vg_opt /dev/sdff g[1P[1P[1P[1@8a[1P[1P[1@M[1@e
+  Logical volume "CacheMetaLV" created.
+]0;root@lvm:~[root@lvm ~]# lvs -a vg_opt
+  LV          VG     Attr       LSize    Pool Origin Data%  Meta%  Move Log Cpy%Sync Convert
+  CacheDataLV vg_opt -wi-a-----  252.00m                                                    
+  CacheMetaLV vg_opt -wi-a-----    8.00m                                                    
+  optLV       vg_opt -wi-a----- 1000.00m                                                    
+]0;root@lvm:~[root@lvm ~]# lc vconvert --type chache  -pool --poolmetadata vg_opt/CacheMetaLV vg_opt/CacheDataLV
+  WARNING: Unrecognised segment type chache-pool
+  Invalid argument for --type: chache-pool
+  Error during parsing of command line.
+]0;root@lvm:~[root@lvm ~]# lvconvert --type chache-pool --poolmetadata vg_opt/CacheMetaLV vg_opt/CacheDataLV[1P
+  WARNING: Converting vg_opt/CacheDataLV and vg_opt/CacheMetaLV to cache pool's data and metadata volumes with metadata wiping.
+  THIS WILL DESTROY CONTENT OF LOGICAL VOLUME (filesystem etc.)
+Do you really want to convert vg_opt/CacheDataLV and vg_opt/CacheMetaLV? [y/n]: y
+  Converted vg_opt/CacheDataLV and vg_opt/CacheMetaLV to cache pool.
+]0;root@lvm:~[root@lvm ~]# lvs -a vg_opt
+  LV                  VG     Attr       LSize    Pool Origin Data%  Meta%  Move Log Cpy%Sync Convert
+  CacheDataLV         vg_opt Cwi---C---  252.00m                                                    
+  [CacheDataLV_cdata] vg_opt Cwi-------  252.00m                                                    
+  [CacheDataLV_cmeta] vg_opt ewi-------    8.00m                                                    
+  [lvol0_pmspare]     vg_opt ewi-------    8.00m                                                    
+  optLV               vg_opt -wi-a----- 1000.00m                                                    
+]0;root@lvm:~[root@lvm ~]# lvconvert --type cache --cachepool /vg_opt/CacheDataLV /vg_opt/optLV
+  "/vg_opt/optLV": Invalid path for Logical Volume.
+]0;root@lvm:~[root@lvm ~]# lvconvert --type cache --cachepool /vg_opt/CacheDataLV /vg_opt/optLV[1Pvg_opt/CacheDataLV [1P
+Do you want wipe existing metadata of cache pool vg_opt/CacheDataLV? [y/n]: y
+  Logical volume vg_opt/optLV is now cached.
+]0;root@lvm:~[root@lvm ~]# lvs -a vg_opt
+  LV                  VG     Attr       LSize    Pool          Origin        Data%  Meta%  Move Log Cpy%Sync Convert
+  [CacheDataLV]       vg_opt Cwi---C---  252.00m                             0.22   0.93            0.00            
+  [CacheDataLV_cdata] vg_opt Cwi-ao----  252.00m                                                                    
+  [CacheDataLV_cmeta] vg_opt ewi-ao----    8.00m                                                                    
+  [lvol0_pmspare]     vg_opt ewi-------    8.00m                                                                    
+  optLV               vg_opt Cwi-a-C--- 1000.00m [CacheDataLV] [optLV_corig] 0.22   0.93            0.00            
+  [optLV_corig]       vg_opt owi-aoC--- 1000.00m                                                                    
+]0;root@lvm:~[root@lvm ~]# mkfs.btrfs /dev/vg_opt/optLV 
+btrfs-progs v4.9.1
+See http://btrfs.wiki.kernel.org for more information.
+
+Performing full device TRIM /dev/vg_opt/optLV (1000.00MiB) ...
+Label:              (null)
+UUID:               778ac106-d0d1-4cd8-8fe1-e6d920c62aeb
+Node size:          16384
+Sector size:        4096
+Filesystem size:    1000.00MiB
+Block group profiles:
+  Data:             single            8.00MiB
+  Metadata:         DUP              50.00MiB
+  System:           DUP               8.00MiB
+SSD detected:       no
+Incompat features:  extref, skinny-metadata
+Number of devices:  1
+Devices:
+   ID        SIZE  PATH
+    1  1000.00MiB  /dev/vg_opt/optLV
+
+]0;root@lvm:~[root@lvm ~]# lsblk
+NAME                       MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sda                          8:0    0   40G  0 disk 
+|-sda1                       8:1    0    1M  0 part 
+|-sda2                       8:2    0    1G  0 part /boot
+`-sda3                       8:3    0   39G  0 part 
+  |-VolGroup00-LogVol00    253:0    0    8G  0 lvm  /
+  |-VolGroup00-LogVol01    253:1    0  1.5G  0 lvm  [SWAP]
+  `-VolGroup00-LogVol_Home 253:7    0    2G  0 lvm  /home
+sdb                          8:16   0   10G  0 disk 
+sdc                          8:32   0    2G  0 disk 
+|-vg_var-lv_var_rmeta_0    253:2    0    4M  0 lvm  
+| `-vg_var-lv_var          253:6    0  952M  0 lvm  /var
+`-vg_var-lv_var_rimage_0   253:3    0  952M  0 lvm  
+  `-vg_var-lv_var          253:6    0  952M  0 lvm  /var
+sdd                          8:48   0    1G  0 disk 
+|-vg_var-lv_var_rmeta_1    253:4    0    4M  0 lvm  
+| `-vg_var-lv_var          253:6    0  952M  0 lvm  /var
+`-vg_var-lv_var_rimage_1   253:5    0  952M  0 lvm  
+  `-vg_var-lv_var          253:6    0  952M  0 lvm  /var
+sde                          8:64   0    1G  0 disk 
+`-vg_opt-optLV_corig       253:11   0 1000M  0 lvm  
+  `-vg_opt-optLV           253:8    0 1000M  0 lvm  
+sdf                          8:80   0  256M  0 disk 
+`-vg_opt-CacheDataLV_cdata 253:9    0  252M  0 lvm  
+  `-vg_opt-optLV           253:8    0 1000M  0 lvm  
+sdg                          8:96   0  256M  0 disk 
+`-vg_opt-CacheDataLV_cmeta 253:10   0    8M  0 lvm  
+  `-vg_opt-optLV           253:8    0 1000M  0 lvm  
+]0;root@lvm:~[root@lvm ~]# ll /
+total 28
+lrwxrwxrwx.   1 root root    7 Nov 16 12:43 [0m[38;5;51mbin[0m -> [38;5;27musr/bin[0m
+dr-xr-xr-x.   5 root root 4096 Nov 16 12:51 [38;5;27mboot[0m
+drwxr-xr-x.  21 root root 3520 Nov 18 16:18 [38;5;27mdev[0m
+drwxr-xr-x.  81 root root 8192 Nov 18 14:38 [38;5;27metc[0m
+drwxr-xr-x.   3 root root  292 Nov 16 13:59 [38;5;27mhome[0m
+lrwxrwxrwx.   1 root root    7 Nov 16 12:43 [38;5;51mlib[0m -> [38;5;27musr/lib[0m
+lrwxrwxrwx.   1 root root    9 Nov 16 12:43 [38;5;51mlib64[0m -> [38;5;27musr/lib64[0m
+drwxr-xr-x.   2 root root    6 Apr 11  2018 [38;5;27mmedia[0m
+drwxr-xr-x.   2 root root    6 Apr 11  2018 [38;5;27mmnt[0m
+drwxr-xr-x.   3 root root   39 Nov 16 12:02 [38;5;27mopt[0m
+dr-xr-xr-x. 218 root root    0 Nov 18 14:38 [38;5;27mproc[0m
+dr-xr-x---.   7 root root 4096 Nov 18 15:10 [38;5;27mroot[0m
+drwxr-xr-x.  26 root root  880 Nov 18 15:55 [38;5;27mrun[0m
+lrwxrwxrwx.   1 root root    8 Nov 16 12:43 [38;5;51msbin[0m -> [38;5;27musr/sbin[0m
+drwxr-xr-x.   3 root root   20 Nov 14 18:06 [38;5;27msrv[0m
+dr-xr-xr-x.  13 root root    0 Nov 18 14:38 [38;5;27msys[0m
+drwxrwxrwt.  15 root root 4096 Nov 18 16:18 [48;5;10;38;5;16mtmp[0m
+drwxr-xr-x.  13 root root  155 May 12  2018 [38;5;27musr[0m
+drwxr-xr-x.  19 root root 4096 Nov 14 18:06 [38;5;27mvar[0m
+]0;root@lvm:~[root@lvm ~]# [K[root@lvm ~]# [K[root@lvm ~]# mount /dev/vg_opt/optLV /mnt
+]0;root@lvm:~[root@lvm ~]# rsync     cp -aR /opt/* /mnt/
+]0;root@lvm:~[root@lvm ~]# mkdir /tmp/old_opt && mv /opt/* tmp/ol[1@/tmp/old_opt
+]0;root@lvm:~[root@lvm ~]# ll /tmp/old/opt[1P[1@_
+total 0
+drwxr-xr-x. 9 root root 147 Nov 16 12:03 [0m[38;5;27mVBoxGuestAdditions-5.2.20[0m
+]0;root@lvm:~[root@lvm ~]# umount /mnt
+]0;root@lvm:~[root@lvm ~]# mount /dev/vg_opt/optLV /opt
+]0;root@lvm:~[root@lvm ~]# ll /opt
+total 0
+drwxr-xr-x. 1 root root 122 Nov 16 12:03 [0m[38;5;27mVBoxGuestAdditions-5.2.20[0m
+]0;root@lvm:~[root@lvm ~]# blkid | grep opt
+/dev/mapper/vg_[01;31m[Kopt[m[K-[01;31m[Kopt[m[KLV: UUID="778ac106-d0d1-4cd8-8fe1-e6d920c62aeb" UUID_SUB="498c50a8-b370-4045-991e-f77603828235" TYPE="btrfs" 
+]0;root@lvm:~[root@lvm ~]# echo "' `blkid | grep optLV:| || awk '{print$2}'` /opt /bt   btrfs defaults 0 0"
+UUID="778ac106-d0d1-4cd8-8fe1-e6d920c62aeb" /opt btrfs defaults 0 0
+]0;root@lvm:~[root@lvm ~]# echo "`blkid | grep optLV: | awk '{print$2}'` /opt btrfs defaults 0 0" >> /etc/fstan b
+]0;root@lvm:~[root@lvm ~]# cat /etc/fstab
+
+#
+# /etc/fstab
+# Created by anaconda on Sat May 12 18:50:26 2018
+#
+# Accessible filesystems, by reference, are maintained under '/dev/disk'
+# See man pages fstab(5), findfs(8), mount(8) and/or blkid(8) for more info
+#
+/dev/mapper/VolGroup00-LogVol00 /                       xfs     defaults        0 0
+UUID=570897ca-e759-4c81-90cf-389da6eee4cc /boot                   xfs     defaults        0 0
+/dev/mapper/VolGroup00-LogVol01 swap                    swap    defaults        0 0
+UUID="ec74b977-787a-4a44-8be6-ac01248ed0ae" /var ext4 defaults 0 0
+UUID="00391c2e-637e-4267-b428-121ac4a1253f" /home xfs defaults 0 0
+UUID="778ac106-d0d1-4cd8-8fe1-e6d920c62aeb" /opt btrfs defaults 0 0
+]0;root@lvm:~[root@lvm ~]# exit
+
+Script done on Sun Nov 18 16:31:10 2018

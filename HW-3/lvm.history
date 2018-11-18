@@ -1,0 +1,29 @@
+    1  grub2-mkconfig -o /boot/grub2/grub.cfg
+    2  cd boot; ll
+    3  for i in `ls initramfs-*img`; do dracut -v $i `echo $i|sed "s/initramfs-//g;
+    4  for i in `ls initramfs-*img`; do dracut -v $i `echo $i|sed "s/initramfs-//g; s/.img//g"` --force; done
+    5  nano /boot/grub2/grub.cfg
+    6  vi /boot/grub2/grub.cfg
+    7  yum install nano
+    8  nano /boot/grub2/grub.cfg
+    9  lsblk
+   10  df -Th
+   11  echo "test"
+   12  grub2-mkconfig -o /boot/grub2/grub.cfg
+   13  cd boot; for i in `ls initramfs-*img`; do dracut -v $i `echo $i|sed "s/initramfs-//g; s/.img//g"` --force; done
+   14  pvcreate /dev/sdc /dev/sdd
+   15  vgcreate vg_var /dev/sdc /dev/sdd
+   16  lvcreate -L 950M -m1 -n lv_var vg_var
+   17  mkfs.fs4 /dev/vg_var/lv_var 
+   18  mkfs.ext4 /dev/vg_var/lv_var 
+   19  mount /dev/vg_var/lv_var /mnt
+   20  rsync -avHPSAX /var/ /mnt/
+   21  mkdir /tmp/var_old && mv /var/* /tmp/var_old
+   22  unmount /mnt
+   23  umount /mnt
+   24  mount /dev/vg_var/lv_var /var
+   25  echo "`blkid | grep var: | awk '{print $2}'` /var ext4 defaults 0 0" >> /etc/fstab
+   26  exit
+   27  mc
+   28  history
+   29  history > lvm.history && cp lvm.history /srv/common/
